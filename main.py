@@ -17,7 +17,7 @@ import universe
 import v9
 from commands import command_loop
 from meta import Brain
-from notifier import notify
+from notifier import notify, send_document
 from store import Seen
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -123,7 +123,7 @@ def main():
         f"Meta: {'ON' if C.META_ON else 'OFF'} ({'modelo n=' + str(g.n) if g.beta is not None else 'sin modelo'}) · "
         f"Estac.: {'ON' if C.SEASON_ON else 'OFF'} · Trailing: {'ON' if C.TRAIL_ON else 'OFF'} · "
         f"Muestras: {len(brain.samples)} · abiertas: {len(open_list())}\n"
-        f"Comandos: /stats /semana /abiertas /estado /pausa /reanudar")
+        f"Comandos: /stats /semana /abiertas /estado /pausa /reanudar /exportar")
 
     stop = threading.Event()
     if C.COMMANDS_ON and C.TG_TOKEN and C.TG_CHAT:
@@ -133,10 +133,14 @@ def main():
                     "/open": lambda: notify(messages.open_message(open_list())),
                     "/pausa": lambda: (trader.set_paused(True), notify("⏸ Pausado: no abro operaciones nuevas (las abiertas siguen gestionadas).")),
                     "/reanudar": lambda: (trader.set_paused(False), notify("▶️ Reanudado.")),
+                    "/exportar": lambda: (ledger.save(), send_document(ledger.path, f"Historial de {C.BOT_NAME} para compare.py")),
                     "/estado": lambda: notify(status_msg()), "/status": lambda: notify(status_msg()),
                     "/ayuda": lambda: notify("Comandos: /stats (todo) · /semana (7 días) · /abiertas · /estado"),
                     "/start": lambda: notify("Comandos: /stats (todo) · /semana (7 días) · /abiertas · /estado")}
-        threading.Thread(target=command_loop, args=(C.TG_TOKEN, C.TG_CHAT, handlers, stop), daemon=True).start()
+        threading.Thread(target=command_loop, args=(C.TG_TOKEN, C.TG_CHAT, handlers, stop, lambda: notify(
+            "⚠️ Los comandos (/stats, /abiertas…) no funcionan: otro proceso usa este mismo bot de Telegram "
+            "(u hay un webhook activo). Las señales y operaciones siguen normales. Solución: un bot de BotFather "
+            "exclusivo para este servicio, o TELEGRAM_COMMANDS=false.")), daemon=True).start()
 
     if not C.DRY_RUN:
         try:

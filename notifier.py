@@ -6,7 +6,12 @@ import config as C
 log = logging.getLogger("telegram")
 
 
+def _tag():
+    return f"<b>[{C.BOT_NAME}]</b> " if C.BOT_TAG and getattr(C, "BOT_NAME", "") else ""
+
+
 def notify(text: str):
+    text = _tag() + text
     log.info(text.replace("\n", " | ")[:200])
     if not C.TG_TOKEN or not C.TG_CHAT:
         return False
@@ -25,3 +30,18 @@ def notify(text: str):
             log.warning("Telegram error: %s", e)
             time.sleep(1 + attempt)
     return False
+
+
+def send_document(path, caption=""):
+    """Envía un archivo al chat (para /exportar)."""
+    if not C.TG_TOKEN or not C.TG_CHAT:
+        return False
+    try:
+        with open(path, "rb") as f:
+            r = requests.post(f"https://api.telegram.org/bot{C.TG_TOKEN}/sendDocument",
+                              data={"chat_id": C.TG_CHAT, "caption": (_tag() + caption)[:1000], "parse_mode": "HTML"},
+                              files={"document": f}, timeout=60)
+        return r.ok
+    except Exception as e:
+        log.warning("sendDocument: %s", e)
+        return False

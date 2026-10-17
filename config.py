@@ -209,7 +209,7 @@ MAX_LEARN = _i("MAX_LEARN", 80)
 
 def set_strategy(name):
     """granville = motor G1-G8 reconstruido · v9 = script Granville V9. Cada uno usa sus propios ficheros."""
-    global STRATEGY, PREFIX, TP1_FRAC, META_ON, SEASON_ON, STATE_PATH, ROOT_MODEL, ROOT_SAMPLES
+    global STRATEGY, PREFIX, TP1_FRAC, META_ON, SEASON_ON, STATE_PATH, ROOT_MODEL, ROOT_SAMPLES, BOT_NAME
     STRATEGY = name
     v9 = name == "v9"
     PREFIX = "v9" if v9 else "granville"
@@ -217,6 +217,7 @@ def set_strategy(name):
     META_ON = _b("META_ON", not v9)
     SEASON_ON = _b("SEASON_ON", not v9)
     STATE_PATH = os.path.join(DATA_DIR, f"{PREFIX}_state.json")
+    BOT_NAME = _s("BOT_NAME", "V9" if v9 else "G1-G8")
     ROOT_MODEL = "meta_model_v9.json" if v9 else "meta_model.json"
     ROOT_SAMPLES = "samples_v9.jsonl" if v9 else "samples.jsonl"
 
@@ -247,3 +248,4 @@ R4_STRONG_HAP = 60.0
 R4_SIZE_WEAK, R4_RANGE_EXT_SIZE = 0.6, 0.8
 DECAY_ON = _b("DECAY_ON", False)                 # 7) kill-switch por degradación: si las últimas N operaciones rinden mal, tamaño x0.5
 DECAY_N, DECAY_R, DECAY_MULT = 12, 0.3, 0.5
+BOT_TAG = _b("BOT_TAG", True)                    # antepone [NOMBRE] a cada mensaje de Telegram (varios bots en el mismo chat)

@@ -103,6 +103,14 @@ class Trader:
                         f"No abro más. Revisa slippage/comisiones y usa /reanudar cuando quieras seguir.")
 
     def check_account(self):
+        try:
+            foreign = [p["symbol"] for p in self.ex.fetch_positions()
+                       if float(p.get("contracts") or 0) > 0 and p["symbol"] not in self.state]
+            if foreign:
+                self.notify(f"⚠️ Hay {len(foreign)} posiciones abiertas que NO son de este bot ({', '.join(foreign[:6])}). "
+                            f"Si otro bot opera en esta cuenta, los resultados de ambos NO serán independientes: usa una subcuenta propia por bot.")
+        except Exception:
+            pass
         eq = self._equity()
         self.notify(f"✅ Cuenta BingX conectada · equity {eq:.2f} USDT · modo posición: {C.POSITION_MODE}")
         return eq

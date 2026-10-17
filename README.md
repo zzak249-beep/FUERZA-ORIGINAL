@@ -32,6 +32,11 @@ python backtest.py --book 1 --train-meta           # crea meta_model.json + samp
 - Comandos: `/stats` `/semana` `/abiertas` `/estado` + resumen diario. Usa un bot de Telegram propio (si otro proceso lee los comandos del mismo token habrá conflicto 409).
 - No repite señales tras un redeploy (`granville_seen.json`).
 
+## Dos bots independientes (G1-G8 y V9)
+Dos servicios, cada uno con su volumen, su bot de Telegram y (en real) su subcuenta de BingX. `BOT_NAME` etiqueta los mensajes.
+`/exportar` envía el historial y `python compare.py A_ledger.json B_ledger.json --names G1-G8 V9` los compara.
+Guía: `docs/DOS_BOTS_INDEPENDIENTES.md`. Plantillas: `railway_variables_G1G8_*.txt` y `railway_variables_V9_*.txt`.
+
 ## Estrategia V9 (Crowding + Adaptativo) — `STRATEGY=v9`
 Portada del script "Granville V9". Mismo bot (BingX, Telegram, universo, TP/SL, estadísticas), otro motor de señales:
 cruce / rebote / extremo (6 códigos), puerta de crowding, meta-score, régimen HaP adaptativo (TP2, velas, tamaño),
