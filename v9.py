@@ -1,6 +1,7 @@
 """Motor 'Granville V9' (Crowding + Adaptativo) portado desde el script de TradingView.
 Señales: 0 cruce L · 1 rebote L · 2 extremo L · 3 cruce S · 4 rebote S · 5 extremo S  (etiquetas G1,G3,G4,G5,G7,G8).
 Con V9_FAITHFUL=false se corrigen 4 fallos del script (ver README); con true se replican tal cual."""
+import logging
 import math
 import numpy as np
 import pandas as pd
@@ -9,7 +10,15 @@ from indicators import sma, atr as atr_f
 import meta
 import extras
 
+log = logging.getLogger("v9")
+
 LABELS = ["G1", "G3", "G4", "G5", "G7", "G8"]
+
+
+def _no(why, label):
+    """Diagnóstico: deja en el log el motivo por el que se descarta una señal candidata."""
+    log.info("V9 descartada %s: %s", label, why)
+    return None
 
 
 def hap_v9(close):
@@ -71,10 +80,10 @@ def signal_at(F, i):
     price, A = float(F["close"][i]), float(F["atr"][i])
     hr = int(F["hour"][i])
     if C.V9_USE_SESSION and ((C.V9_AVOID_ASIA and 0 <= hr < 6) or (C.V9_AVOID_LATE and hr >= 21)):
-        return None
+        return _no(f"sesión (hora UTC {hr})", label)
     rv = F["rvol"][i]
     if np.isnan(rv) or rv < C.V9_RVOL_MIN or V["range"][i] > C.V9_MAX_RANGE_ATR:
-        return None
+        return _no(f"rvol {rv:.2f} (mín {C.V9_RVOL_MIN}) / rango {V['range'][i]:.2f} ATR (máx {C.V9_MAX_RANGE_ATR})", label)
 
     # --- crowding: densidad de señales iguales entre las últimas V9_CROWD_LOOK (incluida la actual)
     idx = V["sig_idx"]
@@ -95,7 +104,7 @@ def signal_at(F, i):
         crowd = max(crowd, 0.60)
     crowd_ok = (not C.V9_USE_CROWD) or crowd <= C.V9_CROWD_MAX
     if not crowd_ok:
-        return None
+        return _no(f"crowding {crowd:.2f} (máx {C.V9_CROWD_MAX}) densidad {density:.2f} rvol_med {vol_avg:.2f} vel_med {speed_avg:.2f}", label)
 
     # --- meta score (a mano, como en el script; el TF mayor usa velas CERRADAS)
     hap = float(V["hap"][i])
@@ -113,11 +122,11 @@ def signal_at(F, i):
     m += 0.12 if crowd_ok else -0.30
     meta_p = 1.0 / (1.0 + math.exp(-4.5 * (m - 0.25)))
     if C.V9_USE_META and meta_p < C.V9_META_MIN:
-        return None
+        return _no(f"meta {meta_p:.2f} (mín {C.V9_META_MIN})", label)
 
     ok_x, xmult, xnotes = extras.apply(F, i, s, k in (0, 1, 3, 4))
     if not ok_x:
-        return None
+        return _no("extras", label)
 
     # --- régimen adaptativo
     sb = hap >= C.V9_HAP_STRONG and mom >= 0
